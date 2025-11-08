@@ -6,48 +6,52 @@ Description: Draw a digit and get real-time predictions using a trained CNN mode
 
 import streamlit as st
 import numpy as np
-from PIL import Image, ImageOps, ImageDraw
+from PIL import Image, ImageOps
 import cv2
 from streamlit_drawable_canvas import st_canvas
 import tensorflow as tf
 from tensorflow import keras
 import plotly.graph_objects as go
-import plotly.express as px
 import os
 from datetime import datetime
 
 # Page config
 st.set_page_config(
     page_title="MNIST Digit Recognition",
-    page_icon="🔢",
+    page_icon="✨",
     layout="wide",
     initial_sidebar_state="expanded"
 )
 
-# Custom CSS for ultra-modern, sleek styling
+# Elegant beige/cream color palette with smooth animations
 st.markdown("""
     <style>
-    @import url('https://fonts.googleapis.com/css2?family=Poppins:wght@300;400;600;700;900&display=swap');
-    
-    :root {
-        --primary-gradient: linear-gradient(135deg, #667eea 0%, #764ba2 100%);
-        --secondary-gradient: linear-gradient(135deg, #f093fb 0%, #f5576c 100%);
-        --accent-gradient: linear-gradient(135deg, #4facfe 0%, #00f2fe 100%);
-        --success-gradient: linear-gradient(135deg, #43e97b 0%, #38f9d7 100%);
-        --glass-bg: rgba(255, 255, 255, 0.1);
-        --glass-border: rgba(255, 255, 255, 0.2);
-    }
+    @import url('https://fonts.googleapis.com/css2?family=Inter:wght@300;400;500;600;700&family=Playfair+Display:wght@600;700&display=swap');
     
     * {
         margin: 0;
         padding: 0;
-        font-family: 'Poppins', sans-serif;
+        box-sizing: border-box;
     }
     
-    @keyframes fadeInUp {
+    :root {
+        --cream: #FAF8F3;
+        --beige: #E8DCC4;
+        --sand: #D4C5A9;
+        --warm-brown: #A67B5B;
+        --deep-brown: #6B5B4F;
+        --accent: #C9A77C;
+        --text-dark: #3C3530;
+        --text-light: #6B625A;
+        --shadow: rgba(107, 91, 79, 0.08);
+        --shadow-hover: rgba(107, 91, 79, 0.15);
+    }
+    
+    /* Smooth fade-in animation */
+    @keyframes fadeIn {
         from {
             opacity: 0;
-            transform: translateY(30px);
+            transform: translateY(20px);
         }
         to {
             opacity: 1;
@@ -55,397 +59,360 @@ st.markdown("""
         }
     }
     
-    @keyframes pulse {
+    @keyframes slideIn {
+        from {
+            opacity: 0;
+            transform: translateX(-30px);
+        }
+        to {
+            opacity: 1;
+            transform: translateX(0);
+        }
+    }
+    
+    @keyframes gentlePulse {
         0%, 100% {
             transform: scale(1);
         }
         50% {
-            transform: scale(1.05);
+            transform: scale(1.02);
         }
     }
     
-    @keyframes shimmer {
-        0% {
-            background-position: -1000px 0;
-        }
-        100% {
-            background-position: 1000px 0;
-        }
-    }
-    
-    @keyframes float {
-        0%, 100% {
-            transform: translateY(0px);
-        }
-        50% {
-            transform: translateY(-20px);
-        }
-    }
-    
+    /* Main background */
     .main {
-        padding: 1rem 2rem;
-        background: linear-gradient(135deg, #0f0c29, #302b63, #24243e);
-        background-size: 400% 400%;
-        animation: gradientShift 15s ease infinite;
-        min-height: 100vh;
-    }
-    
-    @keyframes gradientShift {
-        0% { background-position: 0% 50%; }
-        50% { background-position: 100% 50%; }
-        100% { background-position: 0% 50%; }
+        background: linear-gradient(135deg, var(--cream) 0%, var(--beige) 100%);
+        padding: 2rem 3rem;
+        animation: fadeIn 0.6s ease-out;
     }
     
     .stApp {
-        background: linear-gradient(135deg, #0f0c29, #302b63, #24243e);
+        background: linear-gradient(135deg, var(--cream) 0%, var(--beige) 100%);
     }
     
+    /* Header styling */
     .main-header {
         text-align: center;
-        color: white;
-        margin-bottom: 2.5rem;
-        animation: fadeInUp 0.8s ease-out;
+        margin-bottom: 3rem;
+        animation: fadeIn 0.8s ease-out;
     }
     
     .main-header h1 {
-        font-size: 4em;
-        font-weight: 900;
+        font-family: 'Playfair Display', serif;
+        font-size: 3.5em;
+        font-weight: 700;
+        color: var(--deep-brown);
         margin-bottom: 0.5rem;
-        background: linear-gradient(135deg, #667eea 0%, #764ba2 50%, #f093fb 100%);
-        -webkit-background-clip: text;
-        -webkit-text-fill-color: transparent;
-        background-clip: text;
-        letter-spacing: 3px;
-        filter: drop-shadow(0 0 20px rgba(102, 126, 234, 0.5));
+        letter-spacing: -0.5px;
     }
     
     .main-header p {
-        font-size: 1.4em;
-        color: rgba(255,255,255,0.85);
-        font-weight: 300;
-        letter-spacing: 1px;
-    }
-    
-    /* Glassmorphism Buttons */
-    .stButton>button {
-        width: 100%;
-        background: rgba(255, 255, 255, 0.1);
-        backdrop-filter: blur(10px);
-        -webkit-backdrop-filter: blur(10px);
-        border: 2px solid rgba(255, 255, 255, 0.2);
-        color: white;
-        height: 3.5em;
-        border-radius: 15px;
-        font-weight: 700;
+        font-family: 'Inter', sans-serif;
         font-size: 1.1em;
-        box-shadow: 0 8px 32px rgba(102, 126, 234, 0.3);
-        transition: all 0.4s cubic-bezier(0.175, 0.885, 0.32, 1.275);
-        position: relative;
-        overflow: hidden;
+        color: var(--text-light);
+        font-weight: 400;
+        letter-spacing: 0.3px;
     }
     
-    .stButton>button:before {
-        content: '';
-        position: absolute;
-        top: 0;
-        left: -100%;
+    /* Elegant buttons */
+    .stButton>button {
+        background: linear-gradient(135deg, var(--warm-brown) 0%, var(--deep-brown) 100%);
+        color: var(--cream);
+        border: none;
+        padding: 0.85rem 2rem;
+        border-radius: 12px;
+        font-family: 'Inter', sans-serif;
+        font-weight: 600;
+        font-size: 1em;
+        letter-spacing: 0.5px;
+        box-shadow: 0 4px 15px var(--shadow);
+        transition: all 0.3s cubic-bezier(0.4, 0, 0.2, 1);
         width: 100%;
-        height: 100%;
-        background: linear-gradient(90deg, transparent, rgba(255,255,255,0.3), transparent);
-        transition: left 0.5s;
-    }
-    
-    .stButton>button:hover:before {
-        left: 100%;
+        cursor: pointer;
     }
     
     .stButton>button:hover {
-        transform: translateY(-3px) scale(1.02);
-        box-shadow: 0 12px 40px rgba(102, 126, 234, 0.5);
-        border-color: rgba(255, 255, 255, 0.4);
-        background: rgba(255, 255, 255, 0.15);
+        transform: translateY(-2px);
+        box-shadow: 0 8px 25px var(--shadow-hover);
+        background: linear-gradient(135deg, var(--deep-brown) 0%, var(--warm-brown) 100%);
     }
     
     .stButton>button:active {
-        transform: translateY(-1px) scale(0.98);
+        transform: translateY(0);
+        box-shadow: 0 2px 10px var(--shadow);
     }
     
-    /* Prediction Box with Glassmorphism */
+    /* Prediction box - elegant and minimal */
     .prediction-box {
-        padding: 40px;
-        border-radius: 25px;
-        background: rgba(255, 255, 255, 0.1);
-        backdrop-filter: blur(20px);
-        -webkit-backdrop-filter: blur(20px);
-        border: 2px solid rgba(255, 255, 255, 0.2);
-        margin: 20px 0;
-        box-shadow: 0 8px 32px rgba(0, 0, 0, 0.3), inset 0 0 20px rgba(255, 255, 255, 0.05);
-        color: white;
+        background: white;
+        border-radius: 20px;
+        padding: 3rem 2rem;
         text-align: center;
-        animation: fadeInUp 0.6s ease-out;
-        position: relative;
-        overflow: hidden;
+        box-shadow: 0 8px 30px var(--shadow);
+        border: 1px solid rgba(166, 123, 91, 0.1);
+        animation: fadeIn 0.5s ease-out;
+        transition: all 0.3s ease;
+        margin: 1.5rem 0;
     }
     
-    .prediction-box:before {
-        content: '';
-        position: absolute;
-        top: -50%;
-        left: -50%;
-        width: 200%;
-        height: 200%;
-        background: radial-gradient(circle, rgba(255,255,255,0.1) 0%, transparent 70%);
-        animation: float 6s ease-in-out infinite;
+    .prediction-box:hover {
+        box-shadow: 0 12px 40px var(--shadow-hover);
+        transform: translateY(-3px);
     }
     
     .prediction-digit {
+        font-family: 'Playfair Display', serif;
         font-size: 5em;
-        font-weight: 900;
-        margin: 15px 0;
-        background: linear-gradient(135deg, #fff 0%, #667eea 100%);
-        -webkit-background-clip: text;
-        -webkit-text-fill-color: transparent;
-        background-clip: text;
-        filter: drop-shadow(0 5px 15px rgba(255, 255, 255, 0.3));
-        animation: pulse 2s ease-in-out infinite;
-        position: relative;
-        z-index: 1;
+        font-weight: 700;
+        color: var(--warm-brown);
+        margin: 1rem 0;
+        animation: gentlePulse 2s ease-in-out infinite;
     }
     
     .confidence-text {
-        font-size: 1.5em;
-        font-weight: 600;
-        margin: 15px 0;
-        text-shadow: 0 2px 10px rgba(0,0,0,0.3);
-        position: relative;
-        z-index: 1;
+        font-family: 'Inter', sans-serif;
+        font-size: 1.3em;
+        color: var(--text-dark);
+        font-weight: 500;
+        margin-top: 1rem;
     }
     
+    /* Section headers */
     .section-header {
-        color: white;
-        font-weight: 700;
+        font-family: 'Playfair Display', serif;
+        color: var(--deep-brown);
         font-size: 1.8em;
-        margin-top: 2rem;
-        margin-bottom: 1.5rem;
-        text-shadow: 0 2px 10px rgba(0,0,0,0.3);
-        letter-spacing: 1px;
+        font-weight: 700;
+        margin: 2rem 0 1.5rem 0;
         position: relative;
         display: inline-block;
+        animation: slideIn 0.6s ease-out;
     }
     
     .section-header:after {
         content: '';
         position: absolute;
-        bottom: -5px;
+        bottom: -8px;
         left: 0;
-        width: 60px;
-        height: 4px;
-        background: linear-gradient(90deg, #667eea, #764ba2);
+        width: 50px;
+        height: 3px;
+        background: var(--accent);
         border-radius: 2px;
     }
     
-    /* Canvas with Glassmorphism */
-    .canvas-box {
-        background: rgba(255, 255, 255, 0.95);
+    /* Canvas container */
+    .canvas-container {
+        background: white;
         border-radius: 20px;
-        padding: 20px;
-        box-shadow: 0 8px 32px rgba(0, 0, 0, 0.2);
-        border: 2px solid rgba(255, 255, 255, 0.3);
+        padding: 1.5rem;
+        box-shadow: 0 8px 30px var(--shadow);
+        border: 1px solid rgba(166, 123, 91, 0.1);
         transition: all 0.3s ease;
+        animation: fadeIn 0.7s ease-out;
     }
     
-    .canvas-box:hover {
-        box-shadow: 0 12px 40px rgba(102, 126, 234, 0.3);
-        transform: translateY(-2px);
+    .canvas-container:hover {
+        box-shadow: 0 12px 40px var(--shadow-hover);
     }
     
-    /* Info Box with Glassmorphism */
+    /* Info box */
     .info-box {
-        background: rgba(255, 255, 255, 0.1);
-        backdrop-filter: blur(10px);
-        -webkit-backdrop-filter: blur(10px);
-        padding: 25px;
-        border-radius: 15px;
-        border: 2px solid rgba(255, 255, 255, 0.2);
-        border-left: 5px solid #667eea;
-        margin: 20px 0;
-        box-shadow: 0 8px 32px rgba(0, 0, 0, 0.2);
-        color: white;
-        transition: all 0.3s ease;
-    }
-    
-    .info-box:hover {
-        transform: translateX(5px);
-        border-left-color: #764ba2;
+        background: white;
+        border-radius: 16px;
+        padding: 2rem;
+        border-left: 4px solid var(--accent);
+        box-shadow: 0 4px 20px var(--shadow);
+        margin: 1.5rem 0;
+        animation: fadeIn 0.6s ease-out;
     }
     
     .info-box h3 {
-        margin-bottom: 10px;
+        font-family: 'Playfair Display', serif;
+        color: var(--deep-brown);
+        font-size: 1.5em;
+        margin-bottom: 1rem;
     }
     
-    /* Stat Card with Glassmorphism */
+    .info-box p {
+        font-family: 'Inter', sans-serif;
+        color: var(--text-light);
+        line-height: 1.8;
+        font-size: 1em;
+    }
+    
+    /* Stat card */
     .stat-card {
-        background: rgba(255, 255, 255, 0.1);
-        backdrop-filter: blur(10px);
-        -webkit-backdrop-filter: blur(10px);
-        border: 2px solid rgba(255, 255, 255, 0.2);
-        padding: 20px;
-        border-radius: 15px;
+        background: white;
+        border-radius: 16px;
+        padding: 1.5rem;
         text-align: center;
-        box-shadow: 0 8px 32px rgba(0, 0, 0, 0.2);
-        margin: 10px 0;
-        transition: all 0.3s cubic-bezier(0.175, 0.885, 0.32, 1.275);
+        box-shadow: 0 4px 20px var(--shadow);
+        transition: all 0.3s cubic-bezier(0.4, 0, 0.2, 1);
+        border: 1px solid rgba(166, 123, 91, 0.1);
+        margin: 0.5rem 0;
+        animation: fadeIn 0.8s ease-out;
     }
     
     .stat-card:hover {
-        transform: translateY(-5px) scale(1.03);
-        box-shadow: 0 12px 40px rgba(102, 126, 234, 0.4);
-        border-color: rgba(255, 255, 255, 0.4);
+        transform: translateY(-5px);
+        box-shadow: 0 8px 30px var(--shadow-hover);
     }
     
     .stat-value {
+        font-family: 'Playfair Display', serif;
         font-size: 2.5em;
-        font-weight: 900;
-        background: linear-gradient(135deg, #667eea, #764ba2);
-        -webkit-background-clip: text;
-        -webkit-text-fill-color: transparent;
-        background-clip: text;
+        font-weight: 700;
+        color: var(--warm-brown);
+        margin: 0.5rem 0;
     }
     
     .stat-label {
-        font-size: 0.95em;
-        color: rgba(255, 255, 255, 0.8);
-        margin-top: 8px;
+        font-family: 'Inter', sans-serif;
+        font-size: 0.9em;
+        color: var(--text-light);
         font-weight: 500;
+        text-transform: uppercase;
+        letter-spacing: 1px;
     }
     
-    /* Top Prediction with Glassmorphism */
+    /* Top predictions */
     .top-prediction {
-        background: rgba(255, 255, 255, 0.1);
-        backdrop-filter: blur(10px);
-        -webkit-backdrop-filter: blur(10px);
-        border: 2px solid rgba(255, 255, 255, 0.2);
-        color: white;
-        padding: 15px 20px;
+        background: white;
         border-radius: 12px;
-        margin: 10px 0;
-        font-weight: 600;
+        padding: 1rem 1.5rem;
+        margin: 0.8rem 0;
+        box-shadow: 0 2px 15px var(--shadow);
+        border-left: 3px solid var(--accent);
+        font-family: 'Inter', sans-serif;
+        color: var(--text-dark);
+        font-weight: 500;
         transition: all 0.3s ease;
-        box-shadow: 0 4px 15px rgba(0, 0, 0, 0.2);
+        animation: slideIn 0.5s ease-out;
     }
     
     .top-prediction:hover {
-        transform: translateX(10px);
-        border-color: rgba(255, 255, 255, 0.4);
-        box-shadow: 0 6px 25px rgba(102, 126, 234, 0.3);
+        transform: translateX(8px);
+        box-shadow: 0 4px 20px var(--shadow-hover);
+        border-left-color: var(--warm-brown);
     }
     
-    /* Sample Card with Glassmorphism */
+    /* Sample cards */
     .sample-card {
-        background: rgba(255, 255, 255, 0.1);
-        backdrop-filter: blur(10px);
-        -webkit-backdrop-filter: blur(10px);
-        border: 2px solid rgba(255, 255, 255, 0.2);
-        padding: 25px 20px;
-        border-radius: 15px;
+        background: white;
+        border-radius: 16px;
+        padding: 2rem 1.5rem;
         text-align: center;
+        box-shadow: 0 4px 20px var(--shadow);
+        transition: all 0.4s cubic-bezier(0.4, 0, 0.2, 1);
         cursor: pointer;
-        transition: all 0.4s cubic-bezier(0.175, 0.885, 0.32, 1.275);
-        box-shadow: 0 8px 32px rgba(0, 0, 0, 0.2);
-        color: white;
+        border: 1px solid rgba(166, 123, 91, 0.1);
+        animation: fadeIn 1s ease-out;
     }
     
     .sample-card:hover {
-        transform: translateY(-10px) rotate(2deg);
-        box-shadow: 0 15px 50px rgba(102, 126, 234, 0.4);
-        border-color: rgba(255, 255, 255, 0.4);
-        background: rgba(255, 255, 255, 0.15);
+        transform: translateY(-10px) scale(1.03);
+        box-shadow: 0 12px 40px var(--shadow-hover);
     }
     
+    .sample-card .emoji {
+        font-size: 3em;
+        margin: 1rem 0;
+        filter: grayscale(30%);
+        transition: all 0.3s ease;
+    }
+    
+    .sample-card:hover .emoji {
+        filter: grayscale(0%);
+        transform: scale(1.1);
+    }
+    
+    /* Divider */
     hr {
         border: none;
         height: 1px;
         background: linear-gradient(90deg, 
-            rgba(255,255,255,0), 
-            rgba(102, 126, 234, 0.5), 
-            rgba(255,255,255,0));
+            transparent, 
+            var(--accent), 
+            transparent);
         margin: 3rem 0;
-        box-shadow: 0 0 10px rgba(102, 126, 234, 0.3);
+        opacity: 0.3;
     }
     
+    /* Sidebar */
+    [data-testid="stSidebar"] {
+        background: linear-gradient(180deg, var(--cream) 0%, var(--beige) 100%);
+        border-right: 1px solid rgba(166, 123, 91, 0.15);
+    }
+    
+    [data-testid="stSidebar"] .stMarkdown {
+        color: var(--text-dark);
+    }
+    
+    .sidebar-header {
+        font-family: 'Playfair Display', serif;
+        color: var(--deep-brown);
+        font-size: 1.4em;
+        font-weight: 700;
+        margin-bottom: 1.5rem;
+    }
+    
+    .sidebar-stat {
+        background: white;
+        border-radius: 12px;
+        padding: 1rem;
+        margin: 0.8rem 0;
+        box-shadow: 0 2px 15px var(--shadow);
+        color: var(--text-dark);
+        font-family: 'Inter', sans-serif;
+        font-weight: 500;
+        transition: all 0.3s ease;
+        border: 1px solid rgba(166, 123, 91, 0.1);
+    }
+    
+    .sidebar-stat:hover {
+        transform: translateX(5px);
+        box-shadow: 0 4px 20px var(--shadow-hover);
+    }
+    
+    /* Footer */
     .footer {
         text-align: center;
-        color: rgba(255,255,255,0.7);
-        margin-top: 3rem;
+        color: var(--text-light);
+        margin-top: 4rem;
         padding-top: 2rem;
-        border-top: 2px solid rgba(255,255,255,0.1);
-        font-size: 0.95em;
+        border-top: 1px solid rgba(166, 123, 91, 0.15);
+        font-family: 'Inter', sans-serif;
     }
     
     .footer a {
-        color: #667eea;
+        color: var(--warm-brown);
         text-decoration: none;
         font-weight: 600;
         transition: all 0.3s ease;
     }
     
     .footer a:hover {
-        color: #764ba2;
-        text-shadow: 0 0 10px rgba(102, 126, 234, 0.5);
-    }
-    
-    /* Sidebar Glassmorphism */
-    [data-testid="stSidebar"] {
-        background: rgba(15, 12, 41, 0.8) !important;
-        backdrop-filter: blur(20px);
-        -webkit-backdrop-filter: blur(20px);
-        border-right: 2px solid rgba(255, 255, 255, 0.1);
-    }
-    
-    .sidebar-header {
-        color: white;
-        font-weight: 900;
-        font-size: 1.4em;
-        margin-bottom: 1.5rem;
-        background: linear-gradient(135deg, #667eea, #764ba2);
-        -webkit-background-clip: text;
-        -webkit-text-fill-color: transparent;
-        background-clip: text;
-    }
-    
-    .sidebar-stat {
-        background: rgba(255, 255, 255, 0.1);
-        backdrop-filter: blur(10px);
-        -webkit-backdrop-filter: blur(10px);
-        border: 2px solid rgba(255, 255, 255, 0.2);
-        color: white;
-        padding: 15px;
-        border-radius: 12px;
-        margin: 10px 0;
-        font-weight: 600;
-        transition: all 0.3s ease;
-        box-shadow: 0 4px 15px rgba(0, 0, 0, 0.2);
-    }
-    
-    .sidebar-stat:hover {
-        transform: translateX(5px);
-        border-color: rgba(255, 255, 255, 0.4);
-        box-shadow: 0 6px 20px rgba(102, 126, 234, 0.3);
+        color: var(--deep-brown);
     }
     
     /* Slider customization */
-    .stSlider {
-        padding: 10px 0;
+    .stSlider > div > div > div > div {
+        background: var(--accent) !important;
     }
     
-    /* Make text white in sidebar */
-    [data-testid="stSidebar"] .stMarkdown {
-        color: rgba(255, 255, 255, 0.9);
+    /* Smooth scrolling */
+    html {
+        scroll-behavior: smooth;
     }
     
-    /* Animation for elements */
+    /* Remove default streamlit styling */
+    #MainMenu {visibility: hidden;}
+    footer {visibility: hidden;}
+    header {visibility: hidden;}
+    
+    /* Element animation */
     .element-container {
-        animation: fadeInUp 0.6s ease-out;
+        animation: fadeIn 0.8s ease-out;
     }
     </style>
 """, unsafe_allow_html=True)
@@ -473,39 +440,23 @@ def load_model():
 def preprocess_image(image_data):
     """Preprocess the drawn image for model prediction"""
     try:
-        # Convert to PIL Image
         img = Image.fromarray(image_data.astype('uint8'), 'RGBA')
-        
-        # Convert to grayscale
         img = img.convert('L')
-        
-        # Invert colors (white background to black, black drawing to white)
         img = ImageOps.invert(img)
-        
-        # Resize to 28x28
         img = img.resize((28, 28), Image.Resampling.LANCZOS)
-        
-        # Convert to numpy array
-        img_array = np.array(img).astype('float32')
-        
-        # DO NOT apply binary threshold - MNIST has grayscale values with anti-aliasing
-        # DO NOT normalize - model was trained on [0-255] grayscale values
-        # Keep the natural grayscale values from the resized image
-        
-        # Reshape for model input (1, 28, 28, 1)
+        img_array = np.array(img).astype('float32') / 255.0
         img_array = img_array.reshape(1, 28, 28, 1)
-        
         return img_array, img
     except Exception as e:
         st.error(f"Error preprocessing image: {str(e)}")
         return None, None
 
 def create_prediction_chart(probabilities):
-    """Create an interactive bar chart of predictions"""
+    """Create a minimalist bar chart"""
     digits = list(range(10))
     probs = probabilities[0] * 100
     
-    colors = ['#FF6B6B' if i == np.argmax(probs) else '#4ECDC4' for i in range(10)]
+    colors = ['#A67B5B' if i == np.argmax(probs) else '#D4C5A9' for i in range(10)]
     
     fig = go.Figure(data=[
         go.Bar(
@@ -516,72 +467,45 @@ def create_prediction_chart(probabilities):
                 line=dict(color='white', width=2)
             ),
             text=[f'{p:.1f}%' for p in probs],
-            textposition='auto',
-            hovertemplate='<b>Digit %{x}</b><br>Confidence: %{y:.2f}%<extra></extra>'
+            textposition='outside',
+            hovertemplate='<b>Digit %{x}</b><br>%{y:.2f}%<extra></extra>'
         )
     ])
     
     fig.update_layout(
         title=dict(
-            text="<b>Prediction Probabilities</b>",
-            font=dict(size=20, color='white')
+            text="Probability Distribution",
+            font=dict(size=18, color='#3C3530', family='Playfair Display')
         ),
-        xaxis_title="<b>Digit</b>",
-        yaxis_title="<b>Confidence (%)</b>",
-        height=400,
+        xaxis_title="Digit",
+        yaxis_title="Confidence (%)",
+        height=380,
         showlegend=False,
-        xaxis=dict(tickmode='linear', tick0=0, dtick=1, showgrid=True, gridwidth=1, gridcolor='rgba(255,255,255,0.2)'),
-        yaxis=dict(showgrid=True, gridwidth=1, gridcolor='rgba(255,255,255,0.2)'),
-        plot_bgcolor='rgba(50,50,100,0.3)',
-        paper_bgcolor='rgba(102,126,234,0)',
-        font=dict(color='white', size=12),
-        margin=dict(l=50, r=50, t=50, b=50),
-        hovermode='x unified'
-    )
-    
-    return fig
-
-def create_history_chart():
-    """Create a chart of prediction history"""
-    if not st.session_state.prediction_history:
-        return None
-    
-    history = st.session_state.prediction_history
-    predictions = [h['digit'] for h in history]
-    confidences = [h['confidence'] for h in history]
-    times = [h['time'] for h in history]
-    
-    fig = go.Figure()
-    
-    fig.add_trace(go.Scatter(
-        x=list(range(len(predictions))),
-        y=confidences,
-        mode='lines+markers',
-        name='Confidence',
-        line=dict(color='#FF6B6B', width=3),
-        marker=dict(size=10, symbol='circle'),
-        hovertemplate='<b>Prediction #%{x}</b><br>Confidence: %{y:.2f}%<extra></extra>'
-    ))
-    
-    fig.update_layout(
-        title="<b>Prediction History</b>",
-        xaxis_title="<b>Prediction Number</b>",
-        yaxis_title="<b>Confidence (%)</b>",
-        height=300,
-        plot_bgcolor='rgba(50,50,100,0.3)',
-        paper_bgcolor='rgba(102,126,234,0)',
-        font=dict(color='white'),
-        hovermode='x unified'
+        xaxis=dict(
+            tickmode='linear',
+            tick0=0,
+            dtick=1,
+            showgrid=False
+        ),
+        yaxis=dict(
+            showgrid=True,
+            gridwidth=1,
+            gridcolor='rgba(166, 123, 91, 0.1)'
+        ),
+        plot_bgcolor='rgba(250, 248, 243, 0.5)',
+        paper_bgcolor='rgba(0,0,0,0)',
+        font=dict(color='#6B625A', size=11, family='Inter'),
+        margin=dict(l=40, r=40, t=60, b=40)
     )
     
     return fig
 
 def main():
-    # Main Header with enhanced visuals
+    # Elegant header
     st.markdown("""
         <div class="main-header">
-            <h1>� MNIST Digit Recognition</h1>
-            <p>✨ Draw any digit (0-9) and watch AI magic happen in real-time ✨</p>
+            <h1>Digit Recognition</h1>
+            <p>Draw any digit from 0 to 9 and watch the AI recognize it instantly</p>
         </div>
     """, unsafe_allow_html=True)
     
@@ -591,155 +515,109 @@ def main():
     if model is None:
         st.markdown("""
         <div class="info-box">
-            <h3>⚠️ Model Not Found</h3>
+            <h3>Model Not Found</h3>
             <p>Please ensure your trained model file <code>best_mnist_model.h5</code> is in the <code>models/</code> folder.</p>
-            <p><strong>Steps:</strong></p>
-            <ol>
-                <li>Train your model in a Jupyter notebook or Google Colab</li>
-                <li>Save it using: <code>model.save('best_mnist_model.h5')</code></li>
-                <li>Download the file and place it in the <code>models/</code> folder</li>
-                <li>Restart the Streamlit app</li>
-            </ol>
         </div>
         """, unsafe_allow_html=True)
         st.stop()
     
     # Sidebar
     with st.sidebar:
-        st.markdown('<div class="sidebar-header">⚙️ Settings & Info</div>', unsafe_allow_html=True)
-        
-        st.markdown("---")
-        st.markdown('<div class="sidebar-header">📊 Model Statistics</div>', unsafe_allow_html=True)
+        st.markdown('<div class="sidebar-header">Model Information</div>', unsafe_allow_html=True)
         
         col1, col2 = st.columns(2)
         with col1:
             st.markdown("""
             <div class="sidebar-stat">
-                <div style="font-size: 0.9em; opacity: 0.9;">Accuracy</div>
-                <div style="font-size: 1.5em; font-weight: bold;">99.2%</div>
+                <div style="font-size: 0.85em; opacity: 0.7; margin-bottom: 5px;">Accuracy</div>
+                <div style="font-size: 1.6em; font-weight: 700; color: #A67B5B;">99.2%</div>
             </div>
             """, unsafe_allow_html=True)
         with col2:
             st.markdown("""
             <div class="sidebar-stat">
-                <div style="font-size: 0.9em; opacity: 0.9;">Architecture</div>
-                <div style="font-size: 1.5em; font-weight: bold;">CNN</div>
-            </div>
-            """, unsafe_allow_html=True)
-        
-        col3, col4 = st.columns(2)
-        with col3:
-            st.markdown("""
-            <div class="sidebar-stat">
-                <div style="font-size: 0.9em; opacity: 0.9;">Training Data</div>
-                <div style="font-size: 1.5em; font-weight: bold;">60K</div>
-            </div>
-            """, unsafe_allow_html=True)
-        with col4:
-            st.markdown("""
-            <div class="sidebar-stat">
-                <div style="font-size: 0.9em; opacity: 0.9;">Parameters</div>
-                <div style="font-size: 1.5em; font-weight: bold;">180K</div>
+                <div style="font-size: 0.85em; opacity: 0.7; margin-bottom: 5px;">Type</div>
+                <div style="font-size: 1.6em; font-weight: 700; color: #A67B5B;">CNN</div>
             </div>
             """, unsafe_allow_html=True)
         
         st.markdown("---")
-        st.markdown('<div class="sidebar-header">🎨 Canvas Settings</div>', unsafe_allow_html=True)
+        st.markdown('<div class="sidebar-header">Canvas Settings</div>', unsafe_allow_html=True)
         
-        stroke_width = st.slider("🖌️ Brush Size", 1, 40, 20, help="Adjust brush thickness for drawing")
+        stroke_width = st.slider("Brush Size", 5, 35, 18, help="Adjust the thickness of your drawing")
         
         st.markdown("---")
-        st.markdown('<div class="sidebar-header">📖 How to Use</div>', unsafe_allow_html=True)
+        st.markdown('<div class="sidebar-header">Instructions</div>', unsafe_allow_html=True)
         
         st.markdown("""
-        **Steps:**
-        1. 🎨 Draw a digit (0-9) in the canvas
-        2. 🎯 Click the **Predict** button
-        3. 📊 View real-time results and confidence
-        4. 🔄 Try again or clear to start over
+        1. Draw a digit in the canvas
+        2. Click the Predict button
+        3. View the AI's prediction
+        4. Clear and try again
         
-        **Tips:**
-        - Draw in the center for better results
-        - Make digits clear and distinct
-        - Fill in the digit completely
-        - Avoid too thin strokes
-        """)
-        
-        st.markdown("---")
-        st.markdown('<div class="sidebar-header">🚀 Tech Stack</div>', unsafe_allow_html=True)
-        
-        st.markdown("""
-        - **TensorFlow/Keras** - Deep Learning
-        - **Streamlit** - Web Interface
-        - **OpenCV** - Image Processing
-        - **Plotly** - Interactive Charts
-        - **NumPy & PIL** - Data Processing
+        **Tips for best results:**
+        - Draw in the center
+        - Use clear, bold strokes
+        - Fill the digit completely
         """)
     
-    # Main content layout
-    col1, col2 = st.columns([1.2, 1], gap="large")
+    # Main content
+    col1, col2 = st.columns([1.3, 1], gap="large")
     
     with col1:
-        st.markdown('<div class="section-header">✏️ Draw Your Digit</div>', unsafe_allow_html=True)
-        st.markdown('<div class="canvas-box">', unsafe_allow_html=True)
+        st.markdown('<div class="section-header">Draw Here</div>', unsafe_allow_html=True)
+        st.markdown('<div class="canvas-container">', unsafe_allow_html=True)
         
         canvas_result = st_canvas(
             fill_color="rgba(255, 255, 255, 1)",
             stroke_width=stroke_width,
-            stroke_color="#000000",
+            stroke_color="#3C3530",
             background_color="#FFFFFF",
-            height=340,
-            width=340,
+            height=320,
+            width=320,
             drawing_mode="freedraw",
             key="canvas",
         )
         
         st.markdown('</div>', unsafe_allow_html=True)
         
-        # Control buttons
-        col_btn1, col_btn2, col_btn3 = st.columns(3, gap="small")
+        # Buttons
+        col_btn1, col_btn2 = st.columns(2, gap="small")
         
         with col_btn1:
-            predict_button = st.button("🎯 Predict", use_container_width=True, key="predict")
+            predict_button = st.button("Predict", use_container_width=True, key="predict")
         with col_btn2:
-            if st.button("🗑️ Clear", use_container_width=True, key="clear"):
+            if st.button("Clear Canvas", use_container_width=True, key="clear"):
                 st.rerun()
-        with col_btn3:
-            if st.button("📸 Screenshot", use_container_width=True, key="screenshot"):
-                st.info("Use your browser's screenshot tool to save the result!")
     
     with col2:
-        st.markdown('<div class="section-header">🎯 Results</div>', unsafe_allow_html=True)
+        st.markdown('<div class="section-header">Prediction</div>', unsafe_allow_html=True)
         
-        # Prediction logic
         if canvas_result.image_data is not None and predict_button:
             if np.sum(canvas_result.image_data[:, :, 3]) == 0:
                 st.markdown("""
                 <div class="info-box">
-                    <h3>✋ Oops! Canvas is Empty</h3>
-                    <p style="margin: 10px 0; font-size: 1.1em;">🎨 Draw a beautiful digit on the canvas first, then click Predict!</p>
-                    <p style="font-size: 0.9em; opacity: 0.8;">💡 Tip: Draw big and clear for best results</p>
+                    <h3>Canvas is Empty</h3>
+                    <p>Please draw a digit on the canvas first, then click Predict.</p>
                 </div>
                 """, unsafe_allow_html=True)
             else:
-                with st.spinner("🔮 Analyzing your digit..."):
-                    # Preprocess image
+                with st.spinner("Analyzing..."):
                     processed_img, display_img = preprocess_image(canvas_result.image_data)
                     
                     if processed_img is not None:
-                        # Make prediction
                         predictions = model.predict(processed_img, verbose=0)
                         predicted_digit = np.argmax(predictions[0])
                         confidence = np.max(predictions[0]) * 100
                         
-                        # Store in history
+                        # Store history
                         st.session_state.prediction_history.append({
                             'digit': predicted_digit,
                             'confidence': confidence,
                             'time': datetime.now().strftime("%H:%M:%S")
                         })
                         
-                        # Display result in beautiful box
+                        # Display result
                         st.markdown(f"""
                         <div class="prediction-box">
                             <div class="prediction-digit">{predicted_digit}</div>
@@ -752,14 +630,14 @@ def main():
                         # Processed image
                         col_img1, col_img2, col_img3 = st.columns([1, 2, 1])
                         with col_img2:
-                            st.markdown("##### 📦 Processed (28×28)")
-                            st.image(display_img, width=120, use_container_width=False)
+                            st.caption("Processed Image (28×28)")
+                            st.image(display_img, width=110)
                         
-                        # Probability chart
+                        # Chart
                         st.plotly_chart(create_prediction_chart(predictions), use_container_width=True)
                         
-                        # Top 3 predictions
-                        st.markdown("##### 🏆 Top 3 Predictions")
+                        # Top 3
+                        st.markdown("**Top 3 Predictions**")
                         top_3_idx = np.argsort(predictions[0])[-3:][::-1]
                         
                         for rank, idx in enumerate(top_3_idx, 1):
@@ -767,116 +645,97 @@ def main():
                             medal = ["🥇", "🥈", "🥉"][rank - 1]
                             st.markdown(f"""
                             <div class="top-prediction">
-                                {medal} <strong>#{rank}</strong> - Digit <strong>{idx}</strong>: <strong>{prob:.2f}%</strong>
+                                {medal} <strong>Digit {idx}</strong>: {prob:.2f}%
                             </div>
                             """, unsafe_allow_html=True)
         else:
             st.markdown("""
             <div class="info-box">
-                <h3>� Ready to Start?</h3>
-                <p style="font-size: 1.15em; margin: 15px 0;">👈 Draw any digit (0-9) in the canvas on the left</p>
-                <p style="font-size: 1.1em; margin: 10px 0;">🎯 Click the <strong>Predict</strong> button</p>
-                <p style="font-size: 1.1em; margin: 10px 0;">✨ Watch the AI work its magic!</p>
-                <p style="margin-top: 15px; font-size: 0.95em; opacity: 0.8;">
-                    💡 Pro tip: Use thicker brush strokes and draw in the center for the most accurate predictions
-                </p>
+                <h3>Ready to Start</h3>
+                <p>Draw a digit on the canvas and click the <strong>Predict</strong> button to see the AI in action.</p>
+                <p style="margin-top: 1rem; font-size: 0.95em;">Use a thicker brush and draw clearly for the best results.</p>
             </div>
             """, unsafe_allow_html=True)
     
-    # Separator
+    # Divider
     st.markdown("<hr>", unsafe_allow_html=True)
     
     # History section
     if st.session_state.prediction_history:
-        st.markdown('<div class="section-header">📈 Prediction History</div>', unsafe_allow_html=True)
+        st.markdown('<div class="section-header">Statistics</div>', unsafe_allow_html=True)
         
-        history_col1, history_col2 = st.columns([2, 1])
+        all_predictions = [h['digit'] for h in st.session_state.prediction_history]
+        all_confidences = [h['confidence'] for h in st.session_state.prediction_history]
         
-        with history_col1:
-            history_chart = create_history_chart()
-            if history_chart:
-                st.plotly_chart(history_chart, use_container_width=True)
+        stat_cols = st.columns(4, gap="medium")
         
-        with history_col2:
-            st.markdown("##### 📊 Statistics")
-            
-            all_predictions = [h['digit'] for h in st.session_state.prediction_history]
-            all_confidences = [h['confidence'] for h in st.session_state.prediction_history]
-            
+        with stat_cols[0]:
             st.markdown(f"""
             <div class="stat-card">
-                <div class="stat-label">Total Predictions</div>
                 <div class="stat-value">{len(all_predictions)}</div>
-            </div>
-            """, unsafe_allow_html=True)
-            
-            st.markdown(f"""
-            <div class="stat-card">
-                <div class="stat-label">Avg Confidence</div>
-                <div class="stat-value">{np.mean(all_confidences):.1f}%</div>
-            </div>
-            """, unsafe_allow_html=True)
-            
-            st.markdown(f"""
-            <div class="stat-card">
-                <div class="stat-label">Most Common</div>
-                <div class="stat-value">{max(set(all_predictions), key=all_predictions.count)}</div>
-            </div>
-            """, unsafe_allow_html=True)
-            
-            st.markdown(f"""
-            <div class="stat-card">
-                <div class="stat-label">Max Confidence</div>
-                <div class="stat-value">{max(all_confidences):.1f}%</div>
+                <div class="stat-label">Total</div>
             </div>
             """, unsafe_allow_html=True)
         
-        if st.button("🗑️ Clear History", use_container_width=True):
+        with stat_cols[1]:
+            st.markdown(f"""
+            <div class="stat-card">
+                <div class="stat-value">{np.mean(all_confidences):.1f}%</div>
+                <div class="stat-label">Avg Confidence</div>
+            </div>
+            """, unsafe_allow_html=True)
+        
+        with stat_cols[2]:
+            st.markdown(f"""
+            <div class="stat-card">
+                <div class="stat-value">{max(set(all_predictions), key=all_predictions.count)}</div>
+                <div class="stat-label">Most Common</div>
+            </div>
+            """, unsafe_allow_html=True)
+        
+        with stat_cols[3]:
+            st.markdown(f"""
+            <div class="stat-card">
+                <div class="stat-value">{max(all_confidences):.1f}%</div>
+                <div class="stat-label">Highest</div>
+            </div>
+            """, unsafe_allow_html=True)
+        
+        if st.button("Clear History", use_container_width=True):
             st.session_state.prediction_history = []
             st.rerun()
     
-    # Separator
+    # Divider
     st.markdown("<hr>", unsafe_allow_html=True)
     
-    # Sample digits section
-    st.markdown('<div class="section-header">📸 Sample Digits to Try</div>', unsafe_allow_html=True)
-    st.markdown("""
-    Try drawing these digits to test the model's recognition ability!
-    """)
+    # Sample section
+    st.markdown('<div class="section-header">Try These Digits</div>', unsafe_allow_html=True)
     
     sample_cols = st.columns(5, gap="medium")
-    sample_digits = [
-        {"digit": "0", "emoji": "0️⃣", "desc": "Zero"},
-        {"digit": "1", "emoji": "1️⃣", "desc": "One"},
-        {"digit": "5", "emoji": "5️⃣", "desc": "Five"},
-        {"digit": "7", "emoji": "7️⃣", "desc": "Seven"},
-        {"digit": "9", "emoji": "9️⃣", "desc": "Nine"},
+    samples = [
+        {"emoji": "0️⃣", "name": "Zero"},
+        {"emoji": "1️⃣", "name": "One"},
+        {"emoji": "5️⃣", "name": "Five"},
+        {"emoji": "7️⃣", "name": "Seven"},
+        {"emoji": "9️⃣", "name": "Nine"}
     ]
     
-    for col, sample in zip(sample_cols, sample_digits):
+    for col, sample in zip(sample_cols, samples):
         with col:
             st.markdown(f"""
             <div class="sample-card">
-                <div style="font-size: 3em; margin: 15px 0; filter: drop-shadow(0 0 10px rgba(255,255,255,0.3));">{sample['emoji']}</div>
-                <div style="font-weight: 700; font-size: 1.2em; color: white; margin: 10px 0;">{sample['desc']}</div>
-                <div style="font-size: 0.85em; color: rgba(255,255,255,0.7); font-weight: 500;">Try drawing this!</div>
+                <div class="emoji">{sample['emoji']}</div>
+                <div style="font-weight: 600; color: #6B5B4F; font-size: 1.1em;">{sample['name']}</div>
             </div>
             """, unsafe_allow_html=True)
-    
-    # Separator
-    st.markdown("<hr>", unsafe_allow_html=True)
     
     # Footer
     st.markdown("""
     <div class="footer">
-        <p style="font-size: 1.1em; margin-bottom: 10px;">✨ Built with passion using <strong>Streamlit</strong> & <strong>TensorFlow</strong> ✨</p>
-        <p style="margin: 10px 0;">🧠 Powered by Deep Learning | 🎯 Real-time AI Predictions | 📊 99.2% Accuracy</p>
-        <p style="margin-top: 1.5rem; font-size: 0.95em;">
-            Created with 💜 by <strong>Ahmed Nour</strong> | 
-            <a href="https://github.com/mejriahmednourallah">🌟 View on GitHub</a>
-        </p>
-        <p style="margin-top: 0.5rem; font-size: 0.8em; opacity: 0.6;">
-            © 2025 | Transforming handwritten digits into predictions since today 🚀
+        <p style="margin-bottom: 0.8rem;">Built with Streamlit & TensorFlow</p>
+        <p style="font-size: 0.9em; opacity: 0.7;">
+            Created by <strong>Ahmed Nour</strong> | 
+            <a href="https://github.com/mejriahmednourallah" target="_blank">GitHub</a>
         </p>
     </div>
     """, unsafe_allow_html=True)
