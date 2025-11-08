@@ -606,9 +606,10 @@ def main():
         col_btn1, col_btn2 = st.columns(2, gap="small")
         
         with col_btn1:
-            predict_button = st.button("Predict", use_container_width=True, key="predict")
+            predict_button = st.button(" Predict", width="stretch", key="predict")
         with col_btn2:
-            if st.button("Clear Canvas", use_container_width=True, key="clear"):
+            clear_button = st.button(" Clear Canvas", width="stretch", key="clear")
+            if clear_button:
                 st.rerun()
     
     with col2:
@@ -655,7 +656,7 @@ def main():
                             st.image(display_img, width=110)
                         
                         # Chart
-                        st.plotly_chart(create_prediction_chart(predictions), use_container_width=True)
+                        st.plotly_chart(create_prediction_chart(predictions), width="stretch")
                         
                         # Top 3
                         st.markdown("**Top 3 Predictions**")
@@ -722,7 +723,8 @@ def main():
             </div>
             """, unsafe_allow_html=True)
         
-        if st.button("Clear History", use_container_width=True):
+        clear_history_btn = st.button("🗑️ Clear History", width="stretch", key="clear_history")
+        if clear_history_btn:
             st.session_state.prediction_history = []
             st.rerun()
     
