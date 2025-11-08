@@ -177,15 +177,16 @@ st.markdown("""
         margin-top: 1rem;
     }
     
-    /* Section headers */
+    /* Section headers - centered */
     .section-header {
         font-family: 'Playfair Display', serif;
         color: var(--deep-brown);
         font-size: 1.8em;
         font-weight: 700;
-        margin: 2rem 0 1.5rem 0;
+        margin: 2rem auto 1.5rem auto;
         position: relative;
-        display: inline-block;
+        display: block;
+        text-align: center;
         animation: slideIn 0.6s ease-out;
     }
     
@@ -193,7 +194,8 @@ st.markdown("""
         content: '';
         position: absolute;
         bottom: -8px;
-        left: 0;
+        left: 50%;
+        transform: translateX(-50%);
         width: 50px;
         height: 3px;
         background: var(--accent);
@@ -606,11 +608,13 @@ def main():
         col_btn1, col_btn2 = st.columns(2, gap="small")
         
         with col_btn1:
-            predict_button = st.button(" Predict", width="stretch", key="predict")
+            predict_button = st.button("🎯 Predict", width="stretch", key="predict")
         with col_btn2:
-            clear_button = st.button(" Clear Canvas", width="stretch", key="clear")
-            if clear_button:
-                st.rerun()
+            clear_button = st.button("🗑️ Clear Canvas", width="stretch", key="clear")
+        
+        # Handle clear button outside column context
+        if clear_button:
+            st.rerun()
     
     with col2:
         st.markdown('<div class="section-header">Prediction</div>', unsafe_allow_html=True)
@@ -727,30 +731,6 @@ def main():
         if clear_history_btn:
             st.session_state.prediction_history = []
             st.rerun()
-    
-    # Divider
-    st.markdown("<hr>", unsafe_allow_html=True)
-    
-    # Sample section
-    st.markdown('<div class="section-header">Try These Digits</div>', unsafe_allow_html=True)
-    
-    sample_cols = st.columns(5, gap="medium")
-    samples = [
-        {"emoji": "0️⃣", "name": "Zero"},
-        {"emoji": "1️⃣", "name": "One"},
-        {"emoji": "5️⃣", "name": "Five"},
-        {"emoji": "7️⃣", "name": "Seven"},
-        {"emoji": "9️⃣", "name": "Nine"}
-    ]
-    
-    for col, sample in zip(sample_cols, samples):
-        with col:
-            st.markdown(f"""
-            <div class="sample-card">
-                <div class="emoji">{sample['emoji']}</div>
-                <div style="font-weight: 600; color: #6B5B4F; font-size: 1.1em;">{sample['name']}</div>
-            </div>
-            """, unsafe_allow_html=True)
     
     # Footer
     st.markdown("""
