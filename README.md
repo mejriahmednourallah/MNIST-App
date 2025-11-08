@@ -6,20 +6,20 @@
 
 A beautiful, interactive web application for real-time handwritten digit recognition powered by a Convolutional Neural Network (CNN) trained on the MNIST dataset.
 
-## ✨ Features
+## Features
 
-### 🎨 Interactive Drawing Canvas
+###  Interactive Drawing Canvas
 - **Smooth drawing experience** with adjustable brush size (1-40px)
 - **Real-time feedback** with professional UI
 - **One-click clearing** and screenshot capabilities
 
-### 🎯 Advanced Predictions
+###  Advanced Predictions
 - **Real-time digit recognition** with confidence scores
 - **Top 3 predictions** display with percentages
 - **Interactive confidence chart** showing all digit probabilities (0-9)
 - **Processed image visualization** (28×28 normalized input)
 
-### 📊 Prediction History & Analytics
+###  Prediction History & Analytics
 - **Automatic history tracking** of all predictions
 - **Confidence trend visualization** with interactive charts
 - **Statistics dashboard** showing:
@@ -28,14 +28,14 @@ A beautiful, interactive web application for real-time handwritten digit recogni
   - Most recognized digit
   - Maximum confidence achieved
 
-### 🎨 Beautiful UI/UX
+###  Beautiful UI/UX
 - **Modern gradient design** with purple/blue theme
 - **Responsive layout** for desktop and tablets
 - **Smooth animations** and transitions
 - **Dark mode friendly** design
 - **Mobile-optimized** interface
 
-## 🚀 Getting Started
+## Getting Started
 
 ### Prerequisites
 - Python 3.8 or higher
@@ -85,7 +85,7 @@ streamlit run app.py
 
 The app will open automatically at `http://localhost:8501`
 
-## 📁 Project Structure
+##  Project Structure
 
 ```
 MNIST-App/
@@ -98,7 +98,7 @@ MNIST-App/
     └── mnist_training.ipynb    # (Optional) Your training code
 ```
 
-## 📊 Model Information
+##  Model Information
 
 | Metric | Value |
 |--------|-------|
@@ -110,7 +110,7 @@ MNIST-App/
 | **Output Classes** | 10 (digits 0-9) |
 | **Framework** | TensorFlow/Keras |
 
-## 🎯 How to Use
+## How to Use
 
 1. **Draw a Digit**
    - Use the drawing canvas on the left
@@ -118,7 +118,7 @@ MNIST-App/
    - Draw clearly in the center for best results
 
 2. **Make a Prediction**
-   - Click the **🎯 Predict** button
+   - Click the ** Predict** button
    - The AI will analyze your drawing instantly
 
 3. **View Results**
@@ -133,7 +133,7 @@ MNIST-App/
    - Check prediction statistics
    - Clear history with one click
 
-## 🛠️ Technologies Used
+##  Technologies Used
 
 | Technology | Purpose |
 |-----------|---------|
@@ -145,7 +145,7 @@ MNIST-App/
 | **Plotly** | Interactive visualizations |
 | **Python** | Programming language |
 
-## 📦 Dependencies
+##  Dependencies
 
 ```
 streamlit==1.28.1
@@ -159,7 +159,7 @@ protobuf==3.20.3
 scikit-learn==1.3.2
 ```
 
-## 🌐 Deployment
+##  Deployment
 
 ### Deploy to Streamlit Cloud
 
@@ -181,22 +181,22 @@ scikit-learn==1.3.2
 
 See [Streamlit Deployment Guide](https://docs.streamlit.io/library/deploy) for detailed instructions.
 
-## 📈 Tips for Better Results
+##  Tips for Better Results
 
-✅ **Do's:**
+ **Do's:**
 - Draw digits in the **center** of the canvas
 - Make strokes **clear and distinct**
 - **Fill in the digit completely**
 - Use **consistent brush size**
 - Test with **different writing styles**
 
-❌ **Don'ts:**
+ **Don'ts:**
 - Draw too **thin** or too **thick**
 - Make digits **too small**
 - Use **multiple separate strokes** for one digit
 - Go outside the **canvas boundaries**
 
-## 🔧 Troubleshooting
+##  Troubleshooting
 
 ### Model not found error
 - **Solution**: Ensure `best_mnist_model.h5` is in the `models/` folder
@@ -217,7 +217,7 @@ See [Streamlit Deployment Guide](https://docs.streamlit.io/library/deploy) for d
   streamlit run app.py --logger.level=debug --server.port 8502
   ```
 
-## 🤝 Contributing
+##  Contributing
 
 Contributions are welcome! Please feel free to submit a Pull Request.
 
@@ -264,7 +264,7 @@ model.fit(X_train.reshape(-1, 28, 28, 1), y_train, epochs=10, validation_split=0
 model.save('models/best_mnist_model.h5')
 ```
 
-## 📚 Resources
+##  Resources
 
 - [MNIST Dataset](http://yann.lecun.com/exdb/mnist/)
 - [TensorFlow Documentation](https://www.tensorflow.org/)
@@ -272,37 +272,17 @@ model.save('models/best_mnist_model.h5')
 - [Keras Documentation](https://keras.io/)
 - [CNN Tutorial](https://cs231n.github.io/convolutional-networks/)
 
-## 📄 License
 
-This project is licensed under the MIT License - see the LICENSE file for details.
-
-## 👨‍💻 Author
+##  Author
 
 **Ahmed Nour**
 - GitHub: [@mejriahmednourallah](https://github.com/mejriahmednourallah)
-- Email: your-email@example.com
 
-## ⭐ Show Your Support
-
-Give a ⭐️ if this project helped you! It motivates me to create more amazing projects.
-
-## 🙏 Acknowledgments
-
-- **MNIST Dataset** - Yann LeCun, Corinna Cortes, and Christopher J.C. Burges
-- **TensorFlow Team** - For the amazing deep learning framework
-- **Streamlit Team** - For making ML web apps so easy to build
-- **OpenCV Community** - For powerful computer vision tools
-
-## 📞 Contact & Support
+##  Contact & Support
 
 Have questions or need help? 
 
 - Open an [Issue](https://github.com/mejriahmednourallah/MNIST-App/issues)
-- Submit a [Discussion](https://github.com/mejriahmednourallah/MNIST-App/discussions)
 - Check [Streamlit Docs](https://docs.streamlit.io/)
 
----
 
-**Made with ❤️ using Streamlit | Powered by TensorFlow**
-
-*Last Updated: November 2025*
