@@ -265,13 +265,11 @@ def preprocess_image(image_data):
         img = img.resize((28, 28), Image.Resampling.LANCZOS)
         
         # Convert to numpy array
-        img_array = np.array(img)
+        img_array = np.array(img).astype('float32')
         
-        # Apply threshold to make it more binary
-        img_array = np.where(img_array > 127, 255, 0).astype('float32')
-        
-        # DO NOT normalize - model was trained on [0-255] values
-        # Keep values in range [0, 255] to match training data
+        # DO NOT apply binary threshold - MNIST has grayscale values with anti-aliasing
+        # DO NOT normalize - model was trained on [0-255] grayscale values
+        # Keep the natural grayscale values from the resized image
         
         # Reshape for model input (1, 28, 28, 1)
         img_array = img_array.reshape(1, 28, 28, 1)
