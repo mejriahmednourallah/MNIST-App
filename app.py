@@ -270,8 +270,8 @@ def preprocess_image(image_data):
         # Apply threshold to make it more binary
         img_array = np.where(img_array > 127, 255, 0).astype('float32')
         
-        # Normalize to [0, 1]
-        img_array = img_array / 255.0
+        # DO NOT normalize - model was trained on [0-255] values
+        # Keep values in range [0, 255] to match training data
         
         # Reshape for model input (1, 28, 28, 1)
         img_array = img_array.reshape(1, 28, 28, 1)
