@@ -444,7 +444,8 @@ def preprocess_image(image_data):
         img = img.convert('L')
         img = ImageOps.invert(img)
         img = img.resize((28, 28), Image.Resampling.LANCZOS)
-        img_array = np.array(img).astype('float32') / 255.0
+        # DO NOT NORMALIZE - model was trained on raw pixel values [0-255]
+        img_array = np.array(img).astype('float32')
         img_array = img_array.reshape(1, 28, 28, 1)
         return img_array, img
     except Exception as e:
