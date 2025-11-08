@@ -209,10 +209,30 @@ st.markdown("""
         border: 1px solid rgba(166, 123, 91, 0.1);
         transition: all 0.3s ease;
         animation: fadeIn 0.7s ease-out;
+        display: inline-block;
+        max-width: fit-content;
     }
     
     .canvas-container:hover {
         box-shadow: 0 12px 40px var(--shadow-hover);
+    }
+    
+    /* Fix canvas iframe container to match canvas size */
+    .stCustomComponentV1 {
+        max-width: 320px !important;
+        width: 320px !important;
+    }
+    
+    [data-testid="stElementContainer"] iframe.stCustomComponentV1 {
+        max-width: 320px !important;
+        width: 320px !important;
+    }
+    
+    /* Make sure canvas parent container doesn't overflow */
+    .st-emotion-cache-8atqhb,
+    .st-emotion-cache-1vo6xi6 {
+        max-width: fit-content !important;
+        width: auto !important;
     }
     
     /* Info box */
